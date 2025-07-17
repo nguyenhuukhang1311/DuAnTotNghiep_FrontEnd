@@ -1,0 +1,204 @@
+﻿@page "/createinput"
+@inject ProductService productService
+@inject SizeService sizeService
+@inject ColorService colorService
+@inject FabricService fabricService
+@inject InputReceiptService inputReceiptService
+@inject NavigationManager Navigation
+@using Models
+@using DTOs
+@using Wrapper
+<h3>CreateInputReceipt</h3>
+<EditForm Model="@ReceiptLines" OnValidSubmit="HandleSubmit">
+    @foreach (var item in ReceiptLines)
+    {
+        <div class="border p-3 mb-3">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Sản phẩm</label>
+                    <InputSelect class="form-select" TValue="int?"
+                                 Value="item.ProductId"
+                                 ValueChanged="val => OnProductChanged(item, val)"
+                                 ValueExpression="() => item.ProductId">
+                        <option value="">-- Chọn sản phẩm --</option>
+                        @foreach (var p in Products)
+                        {
+                            <option value="@p.ProductId">@p.ProductName</option>
+                        }
+                    </InputSelect>
+
+                </div>
+
+                <div class="col-md-2">
+                    <label>Chất liệu</label>
+                    <InputSelect class="form-select" TValue="string?"
+                                 Value="item.SelectedFabricName"
+                                 ValueChanged="val => OnFabricChanged(item, val)"
+                                 ValueExpression="() => item.SelectedFabricName">
+                        <option value="">-- Chọn chất liệu --</option>
+                        @foreach (var name in item.FabricNames)
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="col-md-2">
+                    <label>Màu</label>
+                    <InputSelect class="form-select" TValue="string?"
+                                 Value="item.SelectedColorName"
+                                 ValueChanged="val => OnColorChanged(item, val)"
+                                 ValueExpression="() => item.SelectedColorName">
+                        <option value="">-- Chọn màu --</option>
+                        @foreach (var name in item.ColorNames)
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </InputSelect>
+
+                </div>
+
+                <div class="col-md-2">
+                    <label>Size</label>
+                    <InputSelect TValue="string"
+                                 class="form-select"
+                                 Value="item.SelectedSizeName"
+                                 ValueChanged="val => OnSizeChanged(item, val)"
+                                 ValueExpression="() => item.SelectedSizeName">
+                        <option value="">-- Chọn size --</option>
+                        @foreach (var name in item.SizeNames)
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </InputSelect>
+
+                </div>
+
+                <div class="col-md-1">
+                    <label>SL</label>
+                    <InputNumber class="form-control" @bind-Value="item.Quantity" />
+                </div>
+
+                <div class="col-md-1">
+                    <label>Giá</label>
+                    <InputNumber class="form-control" @bind-Value="item.Price" />
+                </div>
+
+                <div class="col-md-1">
+                    <button class="btn btn-danger mt-4" @onclick="@(() => RemoveLine(item))">Xoá</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <button class="btn btn-secondary" type="button" @onclick="AddLine">+ Thêm dòng</button>
+    <button class="btn btn-primary" type="submit">Lưu phiếu nhập</button>
+</EditForm>
+
+@code {
+    private List<ProductViewModel> Products = new();
+    private List<SizeViewModel> AllSizes = new();
+    private List<ColorViewModel> AllColors = new();
+    private List<FabricViewModel> AllFabrics = new();
+    private List<ReceiptDetailWrapper> ReceiptLines = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Products = await productService.GetProducts();
+        AllSizes = await sizeService.GetSizes();
+        AllColors = await colorService.GetColors();
+        AllFabrics = await fabricService.GetFabrics();
+
+        AddLine();
+    }
+
+    private void AddLine()
+    {
+        ReceiptLines.Add(new ReceiptDetailWrapper());
+    }
+
+    private void RemoveLine(ReceiptDetailWrapper item)
+    {
+        ReceiptLines.Remove(item);
+    }
+
+    private async Task OnProductChanged(ReceiptDetailWrapper item, int? value)
+    {
+        if (value is int productId)
+        {
+            item.ProductId = productId;
+
+            var details = await productService.GetProductDetails(productId);
+
+            item.FilteredProductDetails = details;
+            item.FabricNames = details.Select(x => x.FabricName).Distinct().ToList();
+
+            item.SelectedFabricName = null;
+            item.SelectedColorName = null;
+            item.SelectedSizeName = null;
+            item.ColorNames.Clear();
+            item.SizeNames.Clear();
+        }
+    }
+
+    private void OnFabricChanged(ReceiptDetailWrapper item, string? value)
+    {
+        item.SelectedFabricName = value;
+        item.SelectedColorName = null;
+        item.SelectedSizeName = null;
+
+        item.ColorNames = item.FilteredProductDetails
+            .Where(x => x.FabricName == item.SelectedFabricName)
+            .Select(x => x.ColorName)
+            .Distinct()
+            .ToList();
+
+        item.SizeNames.Clear();
+    }
+
+    private void OnColorChanged(ReceiptDetailWrapper item, string val)
+    {
+        item.SelectedColorName = val;
+        item.SelectedSizeName = null;
+
+        item.SizeNames = item.FilteredProductDetails
+            .Where(x =>
+                x.FabricName == item.SelectedFabricName &&
+                x.ColorName == item.SelectedColorName)
+            .Select(x => x.SizeName)
+            .Distinct()
+            .ToList();
+    }
+
+    private void OnSizeChanged(ReceiptDetailWrapper item, string? value)
+    {
+        item.SelectedSizeName = value;
+    }
+
+    private async Task HandleSubmit()
+    {
+        var dtoList = ReceiptLines.Select(x => new CreateReceiptDetailDTO
+            {
+                ProductId = x.ProductId,
+                FabricId = AllFabrics.FirstOrDefault(f => f.Name == x.SelectedFabricName)?.FabricId,
+                ColorId = AllColors.FirstOrDefault(c => c.Name == x.SelectedColorName)?.ColorId,
+                SizeId = AllSizes.FirstOrDefault(s => s.Name == x.SelectedSizeName)?.SizeId,
+                Quantity = x.Quantity,
+                Price = x.Price
+            }).ToList();
+
+        string managerId = "warehouse-001"; // lấy từ login nếu có
+
+        var result = await inputReceiptService.CreateReceiptAsync(dtoList, managerId);
+        if (result.IsSuccess)
+        {
+            // ✅ chuyển trang hoặc thông báo thành công
+            Navigation.NavigateTo("/list-inputreceipts");
+        }
+        else
+        {
+            // ❌ show lỗi
+            Console.WriteLine(result.Message);
+        }
+    }
+}

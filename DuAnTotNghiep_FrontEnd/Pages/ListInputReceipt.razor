@@ -1,0 +1,204 @@
+﻿@page "/list-inputreceipts"
+@inject InputReceiptService ReceiptService
+@inherits LayoutComponentBase
+@using Models
+<h3 class="mb-3">Danh sách phiếu nhập</h3>
+@if (isLoading)
+{
+    <BlazorBootstrap.Spinner Color="SpinnerColor.Primary" />
+}
+else if (filteredReceipts is not null)
+{
+    <Grid TItem="InputReceiptViewModel"
+          AllowFiltering="true"
+          AllowPaging="true"
+          AllowSorting="true"
+          AllowDetailView="true"
+          Responsive = "true"
+          Data="@filteredReceipts"
+          Class="table table-hover table-bordered table-striped"
+          PageSize="10">
+        <GridColumns>
+            <GridColumn TItem="InputReceiptViewModel" PropertyName="ReceiptId" HeaderText="Mã phiếu">
+                @context.ReceiptId
+            </GridColumn>
+
+            <GridColumn PropertyName="ManagerName" TItem="InputReceiptViewModel" HeaderText="Người quản lý">
+                @context.ManagerName
+            </GridColumn>
+
+            <GridColumn PropertyName="StorageName" TItem="InputReceiptViewModel" HeaderText="Kho nhập">
+                @context.StorageName
+            </GridColumn>
+
+            <GridColumn PropertyName="CreatedDate" TItem="InputReceiptViewModel" HeaderText="Ngày tạo">
+                @context.CreatedDate?.ToString("dd/MM/yyyy")
+            </GridColumn>
+
+            <GridColumn PropertyName="ConfirmedDate" TItem="InputReceiptViewModel" HeaderText="Ngày xác nhận">
+                @context.ConfirmedDate?.ToString("dd/MM/yyyy")
+            </GridColumn>
+
+            <GridColumn PropertyName="CancelDate" TItem="InputReceiptViewModel" HeaderText="Ngày hủy đơn">
+                @context.CancelDate?.ToString("dd/MM/yyyy")
+            </GridColumn>
+
+            <GridColumn PropertyName="Status" TItem="InputReceiptViewModel" HeaderText="Trạng thái">
+                @context.Status
+            </GridColumn>
+
+            <GridColumn PropertyName="Total" TItem="InputReceiptViewModel" HeaderText="Tổng tiền">
+                @context.Total?.ToString("N0")
+            </GridColumn>
+
+            <GridColumn class="width:300px" TItem="InputReceiptViewModel" HeaderText="Thao tác">
+                @if (!context.Status.Contains("Cancelled") && !context.Status.Contains("Completed"))  // Tuỳ logic, có thể điều kiện hiển thị nút
+                {
+                    <Button Class="pe-1" Color="ButtonColor.Danger" Size="ButtonSize.Small" @onclick="() => ShowCancelModal(context)">
+                        Huỷ
+                    </Button>
+                    <Button Color="ButtonColor.Primary" Size="ButtonSize.Small" @onclick="() => ShowConfirmModal(context)">
+                        Xác nhận
+                    </Button>
+                }
+            </GridColumn>
+        </GridColumns>
+        
+        <GridDetailView TItem="InputReceiptViewModel">
+            <Grid TItem="ProductDetailViewModel"
+                  Class="table table-hover border-top"
+                  Data="@context.InputReceiptDetails?.ToList()">
+
+                <GridColumns>
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Mã chi tiết">
+                        <ChildContent Context="product">
+                            @product.DetailId
+                        </ChildContent>
+                    </GridColumn>
+
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Tên sản phẩm">
+                        <ChildContent Context="product">
+                            @product.ProductName
+                        </ChildContent>
+                    </GridColumn>
+
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Màu sắc">
+                        <ChildContent Context="product">
+                            @product.ColorName
+                        </ChildContent>
+                    </GridColumn>
+
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Kích cỡ">
+                        <ChildContent Context="product">
+                            @product.SizeName
+                        </ChildContent>
+                    </GridColumn>
+
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Chất liệu">
+                        <ChildContent Context="product">
+                            @product.FabricName
+                        </ChildContent>
+                    </GridColumn>
+
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Giá nhập">
+                        <ChildContent Context="product">
+                            @product.InputPrice?.ToString("N0")
+                        </ChildContent>
+                    </GridColumn>
+
+                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Số lượng">
+                        <ChildContent Context="product">
+                            @product.Quantity
+                        </ChildContent>
+                    </GridColumn>
+                </GridColumns>
+            </Grid>
+        </GridDetailView>
+    </Grid>
+}
+else
+{
+    <BlazorBootstrap.Alert Color="AlertColor.Danger">Không thể tải danh sách phiếu nhập.</BlazorBootstrap.Alert>
+}
+<Modal @ref="cancelModal" Title="Xác nhận huỷ" IsVerticallyCentered="true" Size="ModalSize.Small">
+    <BodyTemplate>
+        Bạn có chắc chắn muốn huỷ phiếu nhập có mã <strong>@selectedReceipt?.ReceiptId</strong>?
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Secondary" @onclick="CloseModal">Không</Button>
+        <Button Color="ButtonColor.Danger" @onclick="ConfirmCancel">Huỷ phiếu</Button>
+    </FooterTemplate>
+</Modal>
+<Modal @ref="confirmModal" title="Xác nhận phiếu" Size="ModalSize.Small">
+    <BodyTemplate>
+        Bạn có chắc chắn muốn xác nhận phiếu nhập <strong>@selectedReceipt?.ReceiptId</strong>?
+    </BodyTemplate>
+    <FooterTemplate>
+        <Button Color="ButtonColor.Secondary" @onclick="CloseConfirmModal">Không</Button>
+        <Button Color="ButtonColor.Primary" @onclick="ConfirmReceipt">Xác nhận</Button>
+    </FooterTemplate>
+</Modal>
+@code {
+    private List<InputReceiptViewModel>? filteredReceipts;
+    private bool isLoading = true;
+    private Modal? cancelModal;
+    private Modal? confirmModal;
+    private InputReceiptViewModel? selectedReceipt;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        filteredReceipts = await ReceiptService.GetAllInputReceiptsAsync();
+        isLoading = false;
+    }
+    private void ShowCancelModal(InputReceiptViewModel receipt)
+    {
+        selectedReceipt = receipt;
+        cancelModal?.ShowAsync();
+    }
+
+    private void CloseModal()
+    {
+        cancelModal?.HideAsync();
+    }
+
+    private void ShowConfirmModal(InputReceiptViewModel receipt)
+    {
+        selectedReceipt = receipt;
+        confirmModal?.ShowAsync();
+    }
+
+    private void CloseConfirmModal()
+    {
+        confirmModal?.HideAsync();
+    }
+
+    private async Task ConfirmCancel()
+    {
+        if (selectedReceipt is null)
+            return;
+
+        var success = await ReceiptService.CancelReceiptAsync(selectedReceipt.ReceiptId);
+        if (success)
+        {
+            // Làm mới danh sách sau khi huỷ thành công
+            filteredReceipts = await ReceiptService.GetAllInputReceiptsAsync();
+        }
+        cancelModal?.HideAsync();
+    }
+    private async Task ConfirmReceipt()
+    {
+        if (selectedReceipt is null)
+            return;
+
+        var success = await ReceiptService.ConfirmReceiptAsync(selectedReceipt.ReceiptId);
+        if (success)
+        {
+            isLoading = true;
+            filteredReceipts = await ReceiptService.GetAllInputReceiptsAsync();
+            isLoading = false;
+        }
+
+        confirmModal?.HideAsync();
+    }
+}
+
