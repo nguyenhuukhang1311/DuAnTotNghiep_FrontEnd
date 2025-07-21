@@ -2,6 +2,7 @@ using DuAnTotNghiep_FrontEnd;
 using DuAnTotNghiep_FrontEnd.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -15,6 +16,11 @@ builder.Services.AddScoped<SizeService>();
 builder.Services.AddScoped<FabricService>();
 builder.Services.AddScoped<OutputReceiptService>();
 builder.Services.AddScoped<BranchService>();
+
+
+
+builder.Services.AddMudServices();
+
 
 builder.Services.AddBlazorBootstrap();
 await builder.Build().RunAsync();
