@@ -7,198 +7,172 @@
 {
     <BlazorBootstrap.Spinner Color="SpinnerColor.Primary" />
 }
-else if (filteredReceipts is not null)
-{
-    <Grid TItem="InputReceiptViewModel"
-          AllowFiltering="true"
-          AllowPaging="true"
-          AllowSorting="true"
-          AllowDetailView="true"
-          Responsive = "true"
-          Data="@filteredReceipts"
-          Class="table table-hover table-bordered table-striped"
-          PageSize="10">
-        <GridColumns>
-            <GridColumn TItem="InputReceiptViewModel" PropertyName="ReceiptId" HeaderText="Mã phiếu">
-                @context.ReceiptId
-            </GridColumn>
-
-            <GridColumn PropertyName="ManagerName" TItem="InputReceiptViewModel" HeaderText="Người quản lý">
-                @context.ManagerName
-            </GridColumn>
-
-            <GridColumn PropertyName="StorageName" TItem="InputReceiptViewModel" HeaderText="Kho nhập">
-                @context.StorageName
-            </GridColumn>
-
-            <GridColumn PropertyName="CreatedDate" TItem="InputReceiptViewModel" HeaderText="Ngày tạo">
-                @context.CreatedDate?.ToString("dd/MM/yyyy")
-            </GridColumn>
-
-            <GridColumn PropertyName="ConfirmedDate" TItem="InputReceiptViewModel" HeaderText="Ngày xác nhận">
-                @context.ConfirmedDate?.ToString("dd/MM/yyyy")
-            </GridColumn>
-
-            <GridColumn PropertyName="CancelDate" TItem="InputReceiptViewModel" HeaderText="Ngày hủy đơn">
-                @context.CancelDate?.ToString("dd/MM/yyyy")
-            </GridColumn>
-
-            <GridColumn PropertyName="Status" TItem="InputReceiptViewModel" HeaderText="Trạng thái">
-                @context.Status
-            </GridColumn>
-
-            <GridColumn PropertyName="Total" TItem="InputReceiptViewModel" HeaderText="Tổng tiền">
-                @context.Total?.ToString("N0")
-            </GridColumn>
-
-            <GridColumn class="width:300px" TItem="InputReceiptViewModel" HeaderText="Thao tác">
-                @if (!context.Status.Contains("Cancelled") && !context.Status.Contains("Completed"))  // Tuỳ logic, có thể điều kiện hiển thị nút
-                {
-                    <Button Class="pe-1" Color="ButtonColor.Danger" Size="ButtonSize.Small" @onclick="() => ShowCancelModal(context)">
-                        Huỷ
-                    </Button>
-                    <Button Color="ButtonColor.Primary" Size="ButtonSize.Small" @onclick="() => ShowConfirmModal(context)">
-                        Xác nhận
-                    </Button>
-                }
-            </GridColumn>
-        </GridColumns>
-        
-        <GridDetailView TItem="InputReceiptViewModel">
-            <Grid TItem="ProductDetailViewModel"
-                  Class="table table-hover border-top"
-                  Data="@context.InputReceiptDetails?.ToList()">
-
-                <GridColumns>
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Mã chi tiết">
-                        <ChildContent Context="product">
-                            @product.DetailId
-                        </ChildContent>
-                    </GridColumn>
-
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Tên sản phẩm">
-                        <ChildContent Context="product">
-                            @product.ProductName
-                        </ChildContent>
-                    </GridColumn>
-
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Màu sắc">
-                        <ChildContent Context="product">
-                            @product.ColorName
-                        </ChildContent>
-                    </GridColumn>
-
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Kích cỡ">
-                        <ChildContent Context="product">
-                            @product.SizeName
-                        </ChildContent>
-                    </GridColumn>
-
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Chất liệu">
-                        <ChildContent Context="product">
-                            @product.FabricName
-                        </ChildContent>
-                    </GridColumn>
-
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Giá nhập">
-                        <ChildContent Context="product">
-                            @product.InputPrice?.ToString("N0")
-                        </ChildContent>
-                    </GridColumn>
-
-                    <GridColumn TItem="ProductDetailViewModel" HeaderText="Số lượng">
-                        <ChildContent Context="product">
-                            @product.Quantity
-                        </ChildContent>
-                    </GridColumn>
-                </GridColumns>
-            </Grid>
-        </GridDetailView>
-    </Grid>
-}
 else
 {
-    <BlazorBootstrap.Alert Color="AlertColor.Danger">Không thể tải danh sách phiếu nhập.</BlazorBootstrap.Alert>
+
+    <MudTable T="RowItem"
+    Items="rowItems" Hover="true" Breakpoint="Breakpoint.Sm">
+
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh>ReceiptId</MudTh>
+            <MudTh>ManagerName</MudTh>
+            <MudTh>CreatedDate</MudTh>
+            <MudTh>ConfirmedDate</MudTh>
+            <MudTh>CancelDate</MudTh>
+            <MudTh>StorageName</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Total</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => ShowBtnPress(context))">@((context.ShowDetail == true) ? "Hide" : "Show") Receipt Details</MudButton></MudTd>
+            <MudTd DataLabel="ReceiptId">@context.rowItem.ReceiptId</MudTd>
+            <MudTd DataLabel="ManagerName">@context.rowItem.ManagerName</MudTd>
+            <MudTd DataLabel="CreatedDate">@context.rowItem.CreatedDate</MudTd>
+            <MudTd DataLabel="ConfirmedDate">@context.rowItem.ConfirmedDate</MudTd>
+            <MudTd DataLabel="CancelDate">@context.rowItem.CancelDate</MudTd>
+            <MudTd DataLabel="StorageName">@context.rowItem.StorageName</MudTd>
+            <MudTd DataLabel="Status">@context.rowItem.Status</MudTd>
+            <MudTd DataLabel="Total">@context.rowItem.Total</MudTd>
+            <MudTd>
+                @if (context.rowItem.Status != "Cancelled" && context.rowItem.Status != "Completed")
+                {
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small"
+                    OnClick="() => ShowCancelDialog(context)">
+                        Huỷ
+                    </MudButton>
+                    <MudButton Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small"
+                    OnClick="() => ShowConfirmDialog(context)">
+                        Xác nhận
+                    </MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <ChildRowContent>
+            @if (context.ShowDetail)
+            {
+                <MudTr>
+                    <td colspan="9">
+                        <MudCard Elevation="0">
+                            <MudCardContent Class="pa-0">
+                                <MudTable T="ProductDetailViewModel" Items="@context.rowItem.InputReceiptDetails" Context="DetailContext" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+                                    <HeaderContent>
+
+                                        <MudTh>DetailId</MudTh>
+                                        <MudTh>ImgProduct</MudTh>
+                                        <MudTh>ProductName</MudTh>
+                                        <MudTh>SizeName</MudTh>
+                                        <MudTh>ColorName</MudTh>
+                                        <MudTh>FabricName</MudTh>
+                                        <MudTh>InputPrice</MudTh>
+                                        <MudTh>Quantity</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+
+                                        <MudTd DataLabel="DetailId">@DetailContext.DetailId</MudTd>
+                                        <MudTd DataLabel="ImgProduct">@DetailContext.Images.FirstOrDefault()</MudTd>
+                                        <MudTd DataLabel="ProductName">@DetailContext.ProductName</MudTd>
+                                        <MudTd DataLabel="SizeName">@DetailContext.SizeName</MudTd>
+                                        <MudTd DataLabel="ColorName">@DetailContext.ColorName</MudTd>
+                                        <MudTd DataLabel="FabricName">@DetailContext.FabricName</MudTd>
+                                        <MudTd DataLabel="InputPrice">@DetailContext.InputPrice</MudTd>
+                                        <MudTd DataLabel="Quantity">@DetailContext.Quantity</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudCardContent>
+                        </MudCard>
+                    </td>
+
+                </MudTr>
+            }
+        </ChildRowContent>
+    </MudTable>
 }
-<Modal @ref="cancelModal" Title="Xác nhận huỷ" IsVerticallyCentered="true" Size="ModalSize.Small">
-    <BodyTemplate>
-        Bạn có chắc chắn muốn huỷ phiếu nhập có mã <strong>@selectedReceipt?.ReceiptId</strong>?
-    </BodyTemplate>
-    <FooterTemplate>
-        <Button Color="ButtonColor.Secondary" @onclick="CloseModal">Không</Button>
-        <Button Color="ButtonColor.Danger" @onclick="ConfirmCancel">Huỷ phiếu</Button>
-    </FooterTemplate>
-</Modal>
-<Modal @ref="confirmModal" title="Xác nhận phiếu" Size="ModalSize.Small">
-    <BodyTemplate>
-        Bạn có chắc chắn muốn xác nhận phiếu nhập <strong>@selectedReceipt?.ReceiptId</strong>?
-    </BodyTemplate>
-    <FooterTemplate>
-        <Button Color="ButtonColor.Secondary" @onclick="CloseConfirmModal">Không</Button>
-        <Button Color="ButtonColor.Primary" @onclick="ConfirmReceipt">Xác nhận</Button>
-    </FooterTemplate>
-</Modal>
-@code {
-    private List<InputReceiptViewModel>? filteredReceipts;
+<MudDialog @ref="cancelDialogRef" MaxWidth="MaxWidth.Small">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Bạn có chắc chắn muốn <b>huỷ</b> phiếu nhập <strong>@selectedItem?.rowItem.ReceiptId</strong>?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCancelDialog" Color="Color.Secondary">Không</MudButton>
+        <MudButton OnClick="ConfirmCancel" Color="Color.Error">Huỷ phiếu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @ref="confirmDialogRef" MaxWidth="MaxWidth.Small">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Xác nhận phiếu nhập <strong>@selectedItem?.rowItem.ReceiptId</strong>?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseConfirmDialog" Color="Color.Secondary">Không</MudButton>
+        <MudButton OnClick="ConfirmReceipt" Color="Color.Primary">Xác nhận</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code
+{
     private bool isLoading = true;
-    private Modal? cancelModal;
-    private Modal? confirmModal;
-    private InputReceiptViewModel? selectedReceipt;
+    IEnumerable<InputReceiptViewModel> listReceipts = [];
+    List<RowItem> rowItems = [];
+    private RowItem? selectedItem;
+
+    private MudDialog? cancelDialogRef;
+    private MudDialog? confirmDialogRef;
+
+
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
-        filteredReceipts = await ReceiptService.GetAllInputReceiptsAsync();
-        isLoading = false;
+        await ReloadData();
     }
-    private void ShowCancelModal(InputReceiptViewModel receipt)
+    private void ShowCancelDialog(RowItem item)
     {
-        selectedReceipt = receipt;
-        cancelModal?.ShowAsync();
+        selectedItem = item;
+        cancelDialogRef.ShowAsync();
     }
 
-    private void CloseModal()
+    private void ShowConfirmDialog(RowItem item)
     {
-        cancelModal?.HideAsync();
+        selectedItem = item;
+        confirmDialogRef.ShowAsync();
     }
 
-    private void ShowConfirmModal(InputReceiptViewModel receipt)
-    {
-        selectedReceipt = receipt;
-        confirmModal?.ShowAsync();
-    }
-
-    private void CloseConfirmModal()
-    {
-        confirmModal?.HideAsync();
-    }
+    private void CloseCancelDialog() => cancelDialogRef.CloseAsync();
+    private void CloseConfirmDialog() => confirmDialogRef.CloseAsync();
 
     private async Task ConfirmCancel()
     {
-        if (selectedReceipt is null)
-            return;
+        if (selectedItem is null) return;
 
-        var success = await ReceiptService.CancelReceiptAsync(selectedReceipt.ReceiptId);
-        if (success)
-        {
-            // Làm mới danh sách sau khi huỷ thành công
-            filteredReceipts = await ReceiptService.GetAllInputReceiptsAsync();
-        }
-        cancelModal?.HideAsync();
+        var success = await ReceiptService.CancelReceiptAsync(selectedItem.rowItem.ReceiptId);
+        if (success) await ReloadData();
+
+        cancelDialogRef.CloseAsync();
     }
+
     private async Task ConfirmReceipt()
     {
-        if (selectedReceipt is null)
-            return;
+        if (selectedItem is null) return;
 
-        var success = await ReceiptService.ConfirmReceiptAsync(selectedReceipt.ReceiptId);
-        if (success)
-        {
-            isLoading = true;
-            filteredReceipts = await ReceiptService.GetAllInputReceiptsAsync();
-            isLoading = false;
-        }
+        var success = await ReceiptService.ConfirmReceiptAsync(selectedItem.rowItem.ReceiptId);
+        if (success) await ReloadData();
 
-        confirmModal?.HideAsync();
+        confirmDialogRef.CloseAsync();
+    }
+    private async Task ReloadData()
+    {
+        isLoading = true;
+        listReceipts = await ReceiptService.GetAllInputReceiptsAsync() ?? new();
+        rowItems = listReceipts.Select(r => new RowItem { rowItem = r }).ToList();
+        isLoading = false;
+    }
+    class RowItem
+    {
+        public bool ShowDetail = false;
+        public InputReceiptViewModel rowItem {get; set;}
+        public int rowNumber { get; set; }
+    }
+    private void ShowBtnPress(RowItem rowItem)
+    {
+        RowItem item = rowItem;
+        item.ShowDetail = !item.ShowDetail;
     }
 }
-
